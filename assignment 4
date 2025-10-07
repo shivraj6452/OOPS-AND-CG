@@ -1,0 +1,67 @@
+
+// One program that can run as either Server or Client
+public class ChatApp {
+    public static void main(String[] args) throws Exception {
+        BufferedReader console = new BufferedReader(new InputStreamReader(System.in));
+        System.out.print("Start as (S)erver or (C)lient? ");
+        String choice = console.readLine().trim().toUpperCase();
+
+        if (choice.equals("S")) {
+            runServer();
+        } else {
+            runClient();
+        }
+    }
+
+    // ----------------- Server -----------------
+    public static void runServer() throws Exception {
+        ServerSocket serverSocket = new ServerSocket(1234);
+        System.out.println("Server started. Waiting for client...");
+
+        Socket socket = serverSocket.accept();
+        System.out.println("Client connected!");
+
+        startChat(socket, "Client");
+    }
+
+    // ----------------- Client -----------------
+    public static void runClient() throws Exception {
+        Socket socket = new Socket("localhost", 1234);
+        System.out.println("Connected to server!");
+
+        startChat(socket, "Server");
+    }
+
+    // ----------------- Chat Logic -----------------
+    public static void startChat(Socket socket, String otherUser) throws Exception {
+        // Thread to read messages
+        Thread readThread = new Thread(() -> {
+            try {
+                BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                String msg;
+                while ((msg = in.readLine()) != null) {
+                    System.out.println(otherUser + ": " + msg);
+                }
+            } catch (IOException e) {
+                System.out.println("Connection closed.");
+            }
+        });
+
+        // Thread to send messages
+        Thread writeThread = new Thread(() -> {
+            try {
+                PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                BufferedReader console = new BufferedReader(new InputStreamReader(System.in));
+                String msg;
+                while ((msg = console.readLine()) != null) {
+                    out.println(msg);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        readThread.start();
+        writeThread.start();
+    }
+}
